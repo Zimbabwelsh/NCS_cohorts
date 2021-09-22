@@ -28,7 +28,7 @@ outcomes <- unique(df$outcome)
 
 # Generate cohort list
 studylist <- unique(df$cohort)
-agehet <- c("USoc", "ELSA", "GS", "TWINS","BiB")
+agehet <- c("USOC", "ELSA", "GS", "TWINSUK","BiB")
 agehom <- c("MCS", "ALSPAC", "NS", "BCS70", "NCDS", "NSHD")
 
 # Generate distinct time period list
@@ -38,7 +38,7 @@ timelist <- unique(df$timepoint)
 totdf <- df %>% filter(strat_by == "overall")
 ##Note - Twins and GS don't have "overall" category - but can construct weighted means from male/female counts
 
-# USoc has monthly estimates, so collapse to "timepoint" estimates
+# USOC has monthly estimates, so collapse to "timepoint" estimates
 groupdf <- totdf %>% filter(outcome=="General"|outcome=="Depression") %>% 
   group_by(cohort,timepoint, monthnum, outcome) %>% 
   summarise(mean=mean(perc),
@@ -51,7 +51,8 @@ groupdf <- groupdf %>% mutate(type = (case_when(
   cohort %in% agehom ~ 0)
   ))
 
-groupdf$type <- recode(groupdf$type, `1`="Age Heterogeneous", `0`="Age Homogenous")
+groupdf$type <- recode(groupdf$type, `1`="Age Heterogeneous", `0`="Age Homogeneous")
+groupdf$type2 <- factor(groupdf$type, levels=c("Age Homogeneous", "Age Heterogeneous"))
 
 ### Generate X limits for geom_rect input
 xmins <- c(4, 7, 11)
@@ -67,15 +68,15 @@ xmaxs <- c(6, 10, 15)
 #Reorder cohorts for display
 
 studylist <- groupdf$cohort
-orderlist <- c("USoc", "ELSA", "GS", "TWINS","BiB","MCS", "ALSPAC", "NS", "BCS70", "NCDS", "NSHD")
+orderlist <- c("USOC", "ELSA", "GS", "TWINSUK","BiB","MCS", "ALSPAC", "NS", "BCS70", "NCDS", "NSHD")
 f1 <- factor(studylist, levels=orderlist)
 groupdf <- groupdf[order(f1),]
 groupdf$cohort <- factor(groupdf$cohort, levels=orderlist)
 
-groupdf <- groupdf %>% mutate(row=case_when((cohort=="USoc" | cohort=="MCS")~1,
+groupdf <- groupdf %>% mutate(row=case_when((cohort=="USOC" | cohort=="MCS")~1,
                                  (cohort=="ELSA" | cohort=="ALSPAC")~2,
                                  (cohort=="GS" | cohort== "NS")~3,
-                                 (cohort=="TWINS" | cohort=="BCS70")~4,
+                                 (cohort=="TWINSUK" | cohort=="BCS70")~4,
                                  (cohort=="BiB" | cohort == "NCDS")~5, 
                                  (cohort =="NSHD"~6))
                    )
@@ -102,21 +103,24 @@ age_strat_plot <- ggplot(groupdf,
   #geom_label(cohort)+
   geom_ribbon(aes(ymin=loCI, ymax=hiCI),
               linetype=1, alpha=0.2) +
-  facet_grid(row~type) +
   theme(panel.border=element_blank(),
-        panel.grid.minor.x = element_blank()) +
+        panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
   xlab("Pandemic Timepoint")+
   ylab("Case Prevalence (%)") +
   annotate("rect", xmin=xmins[1], xmax=xmaxs[1], ymin=-0.5, ymax=Inf, alpha=0.1, fill="purple")+
   annotate("rect", xmin=xmins[2], xmax=xmaxs[2], ymin=-0.5, ymax=Inf, alpha=0.1, fill="blue")+
   annotate("rect", xmin=xmins[3], xmax=xmaxs[3], ymin=-0.5, ymax=Inf, alpha=0.1, fill="green")+
   theme(strip.background = element_blank(), strip.text.y = element_blank()) +
-  scale_colour_viridis_d(direction=-1) 
+  scale_colour_viridis_d(direction=-1) +
+  facet_grid(row~type2) +
+  geom_text(data=(groupdf %>% group_by(cohort) %>% top_n(1,monthnum)),
+            label=unique(groupdf$cohort), y=5, size=2.5, colour="black", x = 14.5, hjust=1)
 
 ##Generate code for labels
 ann.text <- data.frame(monthnum = c(5, 8.5, 13), lab = c("Period 1", "Period 2", "Period 3"),
-                       cohort=c("TWINS", "TWINS", "TWINS"),
-                       type = c("Age Heterogeneous","Age Heterogeneous","Age Heterogeneous"),
+                       cohort=c("MCS", "MCS", "MCS"),
+                       type2 = c("Age Heterogeneous","Age Heterogeneous","Age Heterogeneous"),
                        row = c(6,6,6),
                        mean = c(22,22,22))
 
@@ -126,11 +130,11 @@ annot_age_plot <- age_strat_plot+  geom_text(
     size=2.5,
     angle=45,
     colour="black"
-  )
+  ) + facet_grid(row~factor(type2, level=c("Age Homogeneous", "Age Heterogeneous")))
  
 annot_age_plot
 
-#ggsave("outcomeDescPlot.png")
+ggsave("outcomeDescPlot.png", width=6, height=6, dpi=600)
 
 ################################################
 # Generate dataframe for stratification by sex #
@@ -144,16 +148,16 @@ sumsex <- sexdf %>% group_by(cohort, timepoint, monthnum , strat_group) %>%
             hiCI=mean(hici))
 
 studylist <- sumsex$cohort
-orderlist <- c("USoc", "ELSA", "GS", "TWINS","BiB","MCS", "ALSPAC", "NS", "BCS70", "NCDS", "NSHD")
+orderlist <- c("USOC", "ELSA", "GS", "TWINSUK","BiB","MCS", "ALSPAC", "NS", "BCS70", "NCDS", "NSHD")
 f1 <- factor(studylist, levels=orderlist)
 sumsex <- sumsex[order(f1),]
 sumsex$cohort <- factor(sumsex$cohort, levels=orderlist)
 
 ### Generate faceting variables again
-sumsex <- sumsex %>% mutate(row=case_when((cohort=="USoc" | cohort=="MCS")~1,
+sumsex <- sumsex %>% mutate(row=case_when((cohort=="USOC" | cohort=="MCS")~1,
                                             (cohort=="ELSA" | cohort=="ALSPAC")~2,
                                             (cohort=="GS" | cohort== "NS")~3,
-                                            (cohort=="TWINS" | cohort=="BCS70")~4,
+                                            (cohort=="TWINSUK" | cohort=="BCS70")~4,
                                             (cohort=="BiB" | cohort == "NCDS")~5, 
                                             (cohort =="NSHD"~6))
 )
@@ -161,7 +165,7 @@ sumsex <- sumsex %>% mutate(type = (case_when(
   cohort %in% agehet ~ 1,
   cohort %in% agehom ~ 0)
 ))
-sumsex$type <- recode(sumsex$type, `1`="Age Heterogeneous", `0`="Age Homogenous")
+sumsex$type <- recode(sumsex$type, `1`="Age Heterogeneous", `0`="Age Homogeneous")
 
 colnames(sumsex) <- c("Cohort","timepoint","monthnum","Sex","mean","loCI","hiCI","row","type")
 
@@ -190,22 +194,32 @@ sexplot <- ggplot(sumsex,
   #             linetype=1, alpha=0.2) +
   facet_grid(row~type) +
   theme(panel.border=element_blank(),
-        panel.grid.minor.x = element_blank()) +
+        panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
   xlab("Pandemic Timepoint")+
   ylab("Case Prevalence (%)") +
   annotate("rect", xmin=xmins[1], xmax=xmaxs[1], ymin=-0.5, ymax=Inf, alpha=0.1, fill="purple")+
   annotate("rect", xmin=xmins[2], xmax=xmaxs[2], ymin=-0.5, ymax=Inf, alpha=0.1, fill="blue")+
   annotate("rect", xmin=xmins[3], xmax=xmaxs[3], ymin=-0.5, ymax=Inf, alpha=0.1, fill="green")+
   theme(strip.background = element_blank(), strip.text.y = element_blank()) +
-  scale_colour_viridis_d(direction=-1) 
+  scale_colour_viridis_d(direction=-1)+
+  geom_text(data=(groupdf %>% group_by(cohort) %>% top_n(1,monthnum)),
+  label=unique(groupdf$cohort), y=5, size=2.5, colour="black", x = 14.5, hjust=1)
+
+ann.text2 <- data.frame(monthnum = c(5, 8.5, 13), lab = c("Period 1", "Period 2", "Period 3"),
+                       cohort=c("MCS", "MCS", "MCS"),
+                       type = c("Age Heterogeneous","Age Heterogeneous","Age Heterogeneous"),
+                       row = c(6,6,6),
+                       mean = c(22,22,22))
 
 annot_sex_plot <- sexplot+  geom_text(
-  data=ann.text,
+  data=ann.text2,
   mapping = aes(x=monthnum, y=mean, label = lab),
   size=2.5,
   angle=45,
   colour="black"
-)
+) + facet_grid(row~factor(type, level=c("Age Homogeneous", "Age Heterogeneous")))
 annot_sex_plot
 
-#ggsave("sexDescPlot.png")
+ggsave("sexDescPlot.png", width=6, height=6, dpi=600)
+
