@@ -58,6 +58,9 @@ groupdf$type2 <- factor(groupdf$type, levels=c("Age Homogeneous", "Age Heterogen
 xmins <- c(4, 7, 11)
 xmaxs <- c(6, 10, 15)
 
+### offset viridis colours by 2 to remove yellow and light green
+viridis_man <- (c(viridis::viridis(n=13)))[1:11]
+
 ### Recode for age-het/age-hom studies
 
 
@@ -80,6 +83,18 @@ groupdf <- groupdf %>% mutate(row=case_when((cohort=="USOC" | cohort=="MCS")~1,
                                  (cohort=="BiB" | cohort == "NCDS")~5, 
                                  (cohort =="NSHD"~6))
                    )
+groupdf <-   groupdf %>% mutate(size=case_when((cohort=="MCS")~"N=4,988",
+                                    (cohort=="ALSPAC")~"N=3,208",
+                                    (cohort=="NS")~"N=4,139",
+                                    (cohort=="BCS70")~"N=5,532",
+                                    (cohort=="NCDS")~"N=6,667",
+                                    (cohort=="NSHD")~"N=2,007",
+                                    (cohort=="USOC")~"N=12,437",
+                                    (cohort=="ELSA")~"N=5,699",
+                                    (cohort=="GS")~"N=4,151",
+                                    (cohort=="TWINSUK")~"N=4,040",
+                                    (cohort=="BiB")~"N=1,741"))
+
 
 
 ### Facet_wrap code:
@@ -99,23 +114,24 @@ age_strat_plot <- ggplot(groupdf,
                               "9"="September 2020",
                               "12"="December 2020",
                               "15"="March 2021")) +
-  scale_fill_viridis()+
   #geom_label(cohort)+
   geom_ribbon(aes(ymin=loCI, ymax=hiCI),
               linetype=1, alpha=0.2) +
   theme(panel.border=element_blank(),
         panel.grid.minor.x = element_blank(),
         legend.position = "none") +
-  xlab("Pandemic Timepoint")+
-  ylab("Case Prevalence (%)") +
+  xlab("Pandemic Time Period")+
+  ylab("High Distress Prevalence (%)") +
   annotate("rect", xmin=xmins[1], xmax=xmaxs[1], ymin=-0.5, ymax=Inf, alpha=0.1, fill="purple")+
   annotate("rect", xmin=xmins[2], xmax=xmaxs[2], ymin=-0.5, ymax=Inf, alpha=0.1, fill="blue")+
   annotate("rect", xmin=xmins[3], xmax=xmaxs[3], ymin=-0.5, ymax=Inf, alpha=0.1, fill="green")+
-  theme(strip.background = element_blank(), strip.text.y = element_blank()) +
-  scale_colour_viridis_d(direction=-1) +
+  theme(strip.background = element_blank(), strip.text = element_blank(), axis.title.x = element_blank()) +
+  scale_color_manual(values=viridis_man)+
   facet_grid(row~type2) +
   geom_text(data=(groupdf %>% group_by(cohort) %>% top_n(1,monthnum)),
-            label=unique(groupdf$cohort), y=5, size=2.5, colour="black", x = 14.5, hjust=1)
+            label=unique(groupdf$cohort), y=3, size=2.5, colour="black", x = 0.5, hjust=0)+
+  geom_text(data=(groupdf %>% group_by(cohort) %>% top_n(1,monthnum)),
+            label=unique(groupdf$size), y=3, size=2.5, colour="black", x=14.5, hjust=1)
 
 ##Generate code for labels
 ann.text <- data.frame(monthnum = c(5, 8.5, 13), lab = c("Period 1", "Period 2", "Period 3"),
@@ -169,6 +185,12 @@ sumsex$type <- recode(sumsex$type, `1`="Age Heterogeneous", `0`="Age Homogeneous
 
 colnames(sumsex) <- c("Cohort","timepoint","monthnum","Sex","mean","loCI","hiCI","row","type")
 
+## Calculate sex difference in prevalence
+#sumsex %>% group_by(Cohort) %>% summarize(diff=Sex$male-Sex$female)
+
+
+
+
 
 ### Generate plot
 
@@ -176,7 +198,7 @@ sexplot <- ggplot(sumsex,
                          aes(x= monthnum,
                              y=mean,
                              colour=Cohort)) +
-  geom_point (size=1.5) +
+  geom_point (size=1.5, show.legend = FALSE) +
   geom_line(aes(linetype=Sex)) +
   ylab("Proportion over case threshold") +
   theme(axis.text.x=element_text(color = "black",
@@ -194,17 +216,16 @@ sexplot <- ggplot(sumsex,
   #             linetype=1, alpha=0.2) +
   facet_grid(row~type) +
   theme(panel.border=element_blank(),
-        panel.grid.minor.x = element_blank(),
-        legend.position = "none") +
+        panel.grid.minor.x = element_blank()) +
   xlab("Pandemic Timepoint")+
-  ylab("Case Prevalence (%)") +
+  ylab("High Distress Prevalence (%)") +
   annotate("rect", xmin=xmins[1], xmax=xmaxs[1], ymin=-0.5, ymax=Inf, alpha=0.1, fill="purple")+
   annotate("rect", xmin=xmins[2], xmax=xmaxs[2], ymin=-0.5, ymax=Inf, alpha=0.1, fill="blue")+
   annotate("rect", xmin=xmins[3], xmax=xmaxs[3], ymin=-0.5, ymax=Inf, alpha=0.1, fill="green")+
-  theme(strip.background = element_blank(), strip.text.y = element_blank()) +
-  scale_colour_viridis_d(direction=-1)+
+  theme(strip.background = element_blank(), strip.text = element_blank(), axis.title.x = element_blank()) +
+  scale_color_manual(values = viridis_man)+
   geom_text(data=(groupdf %>% group_by(cohort) %>% top_n(1,monthnum)),
-  label=unique(groupdf$cohort), y=5, size=2.5, colour="black", x = 14.5, hjust=1)
+  label=unique(groupdf$cohort), y=5, size=2.5, colour="black", x = 14.5, hjust=1, show.legend = FALSE)
 
 ann.text2 <- data.frame(monthnum = c(5, 8.5, 13), lab = c("Period 1", "Period 2", "Period 3"),
                        cohort=c("MCS", "MCS", "MCS"),
