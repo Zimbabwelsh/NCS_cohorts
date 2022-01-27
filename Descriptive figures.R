@@ -3,7 +3,7 @@ library(tidyverse)
 library(ggplot2)
 library(viridis)
 
-setwd("C:/Users/gg9824/Dropbox/00ESRC Fellowship/NCS Cohorts/ARQ1 Paper 2 Graphics")
+setwd("path/to/data")
 
 ## Read in Prevalence data
 df <- read_xlsx("2021.04.22_ARQ1_MH2 _OutcomeDescriptives (5).xlsx", sheet=3)
